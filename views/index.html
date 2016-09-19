@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+<head>
+    <title>My fancy game</title>
+</head>
+<body>
+
+<canvas id="canvas" style="border:1px solid #000"></canvas>
+<script src='/socket.io/socket.io.js'></script>
+<script>
+  var socket = io();
+  socket.on('player-connected', function(data) {
+    console.log("ID: " + data.id);
+    player.color = data.color;
+    player.id = data.id;
+  });
+
+  socket.on('ping', function() {
+    emitMessage('drop', {id: player.id});
+  });
+
+  socket.on('players', function(data) {
+    updatePositions(data);
+  });
+
+  var width = 1200;
+  var height = 800;
+  var gravity = 0.4;
+  var friction = 1;
+
+  var player = {
+      id: null,
+      x: width/2,
+      y: height - 20,
+      width: 20,
+      height: 20,
+      color: "#00ff00",
+      velX: 0,
+      velY: 0,
+      speed: 5,
+      jumping: false,
+      keys: []
+  };
+
+  var players = {};
+  var canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
+
+  canvas.height = height;
+  canvas.width = width;
+
+  function updatePositions(_data) {
+    //console.log("UPDATE" + JSON.stringify(_data) + typeof(_data));
+    var data = _data;
+    ctx.clearRect(0,0,width,height);
+
+    player.x += player.velX;
+    player.y += player.velY;
+
+    if (player.x >= width-player.width) {
+        player.x = width-player.width;
+    } else if (player.x <= 0) {
+        player.x = 0;
+    }
+
+    if(player.y >= height-player.height){
+      player.y = height - player.height;
+      player.jumping = false;
+    }
+    player.velX *= friction;
+    player.velY += gravity;
+    emitMessage('player-position', player);
+    drawPlayer(player);
+
+    //players = data;
+    for (p in data) {
+      //console.log(p);
+      //console.log((p == player.id) + " " + p + " " + player.id + " 22");
+      if (p != null && data[p].data.id !== player.id) {
+
+        //console.log("p " + data[p]['data']['id'] + " X:" + data[p]['data'].x + " Y:" + data[p]['data'].y);
+        //console.log("P: " + JSON.stringify(players[p]));
+        drawPlayer(data[p]['data']);
+      }
+    }
+  }
+
+  function drawPlayer(player) {
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+  }
+
+  function update() {
+    ctx.clearRect(0,0,width,height);
+
+    player.x += player.velX;
+    player.y += player.velY;
+
+    if (player.x >= width-player.width) {
+        player.x = width-player.width;
+    } else if (player.x <= 0) {
+        player.x = 0;
+    }
+
+    if(player.y >= height-player.height){
+      player.y = height - player.height;
+      player.jumping = false;
+    }
+    player.velX *= friction;
+    player.velY += gravity;
+    emitMessage('player-position', player);
+    drawPlayer(player);
+    var players_count = 0;
+    /*for (p in players) {
+      //console.log((p == player.id) + " " + p + " " + player.id + " 22");
+      if (p != null && players[p].data.id !== player.id) {
+
+        //console.log("p " + players[p]['data']['id'] + " X:" + players[p]['data'].x + " Y:" + players[p]['data'].y + " JSON: " + JSON.stringify(players[p]));
+        //console.log("P: " + JSON.stringify(players[p]));
+        drawPlayer(players[p]['data']);
+      }
+    }*/
+    //requestAnimationFrame(update);
+  }
+
+  window.addEventListener('load', function() {
+    //update();
+  });
+
+  function emitMessage(key, message) {
+    socket.emit(key, message);
+  }
+
+  function checkKeys() {
+    if (player.keys['38'] || player.keys['32']) {
+      // up arrow or space
+        if(!player.jumping){
+         player.jumping = true;
+         player.velY = -player.speed*2;
+        }
+      }
+      if (player.keys['39']) {
+          // right arrow
+          if (player.velX < player.speed) {
+              player.velX++;
+           }
+      }
+      if (player.keys[37]) {
+          // left arrow
+          if (player.velX > -player.speed) {
+              player.velX--;
+          }
+      }
+  }
+
+  document.body.addEventListener("keydown", function(e) {
+    var keyCode = e.keyCode;
+    player.keys[keyCode] = true;
+    //emitMessage('client-key', {data: {keyCode: keyCode, key : true, player: player.id}});
+    checkKeys();
+  });
+
+  document.body.addEventListener("keyup", function(e) {
+    var keyCode = e.keyCode;
+    player.keys[keyCode] = false;
+    //emitMessage('client-key', {data: { keyCode: keyCode, key : false, id: player.id}});
+    checkKeys();
+  });
+
+  (function() {
+      var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+      window.requestAnimationFrame = requestAnimationFrame;
+  })();
+</script>
+</body>
+</html>
