@@ -58,7 +58,7 @@ io.sockets.on('connection', function (socket) {
 
 });
 console.log("Starting to listen to port 80");
-server.listen(80);
+server.listen(80, "0.0.0.0");
 // error handlers
 
 setInterval(ping, 2000);
