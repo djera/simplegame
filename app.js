@@ -8,6 +8,7 @@ var http = require('http');
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
+var babylontest = require('./routes/babylontest');
 
 var app = express();
 // view engine setup
@@ -24,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
 app.use('/users', users);
+app.use('/babylon', babylontest);
 
 function sendTime() {
   io.emit('time', { time: new Date().toJSON()});
@@ -37,6 +39,7 @@ app.use(function(req, res, next) {
   next(err);
 });
 
+console.log("Starting server");
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
 var players = {};
@@ -57,8 +60,9 @@ io.sockets.on('connection', function (socket) {
     });
 
 });
-console.log("Starting to listen to port 80");
-server.listen(80, "0.0.0.0");
+
+server.listen(3000, "127.0.0.1");
+
 // error handlers
 
 setInterval(ping, 2000);
